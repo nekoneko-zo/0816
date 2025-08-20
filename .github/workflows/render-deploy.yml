@@ -1,0 +1,32 @@
+name: Deploy to Render (on main)
+
+on:
+  # PR を main にマージすると main へ push が発生 → これで確実に発火します
+  push:
+    branches:
+      - main
+  # 手動実行もできるように
+  workflow_dispatch:
+
+concurrency:
+  group: render-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Trigger Render Deploy Hook
+        env:
+          # リポジトリの Secrets に設定してください（下の手順参照）
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::error::Missing secret RENDER_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+          echo "Triggering Render deploy..."
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          echo "Deploy hook triggered."
